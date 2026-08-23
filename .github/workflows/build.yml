@@ -1,4 +1,4 @@
-name: Build Android APK and AAB
+name: Build Android APK and AAB with Icon and Landscape
 
 on:
   workflow_dispatch:
@@ -23,8 +23,22 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/clubmanager/game
           mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+          mkdir -p app/src/main/res/mipmap-xxhdpi
+          mkdir -p app/src/main/res/mipmap-xhdpi
+          mkdir -p app/src/main/res/mipmap-hdpi
+          mkdir -p app/src/main/res/mipmap-mdpi
 
-          # 1. Android Manifest
+          # İkonu klasörlere kopyala
+          if [ -f "icon.png" ]; then
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+          fi
+
+          # 1. Android Manifest (Yatay Mod: sensorLandscape)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -32,7 +46,8 @@ jobs:
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
                   android:allowBackup="true"
-                  android:icon="@android:drawable/sym_def_app_icon"
+                  android:hardwareAccelerated="true"
+                  android:icon="@mipmap/ic_launcher"
                   android:label="Club Manager 27"
                   android:supportsRtl="true"
                   android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
@@ -40,6 +55,7 @@ jobs:
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
+                      android:screenOrientation="sensorLandscape"
                       android:configChanges="orientation|screenSize|keyboardHidden">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -55,7 +71,9 @@ jobs:
           package com.clubmanager.game;
 
           import android.app.Activity;
+          import android.graphics.Color;
           import android.os.Bundle;
+          import android.view.View;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
@@ -66,7 +84,10 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
+                  
                   mWebView = new WebView(this);
+                  mWebView.setBackgroundColor(Color.BLACK);
+                  
                   WebSettings webSettings = mWebView.getSettings();
                   webSettings.setJavaScriptEnabled(true);
                   webSettings.setDomStorageEnabled(true);
@@ -74,6 +95,9 @@ jobs:
                   webSettings.setAllowFileAccess(true);
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
+                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+
+                  mWebView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
                   mWebView.setWebViewClient(new WebViewClient());
                   mWebView.loadUrl("https://football-manager-menajerlik-oyunu.ai.studio");
                   setContentView(mWebView);
@@ -113,7 +137,7 @@ jobs:
           include ':app'
           EOF
 
-          # 4. App build.gradle (Debug key ile imzalı APK ve Play Store AAB)
+          # 4. App build.gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -156,8 +180,8 @@ jobs:
           find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager27.apk \;
           find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager27.aab \;
 
-      - name: Upload APK and AAB
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Installable
+          name: ClubManager27-Landscape
           path: final_output/*
