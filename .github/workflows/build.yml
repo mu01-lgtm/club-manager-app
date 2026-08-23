@@ -30,14 +30,23 @@ jobs:
           unzip -o game.zip -d game_source/
           cd game_source
           
-          # Vite çıktısını Android yerel (relative path) uyumlu yap
+          # Paketleri kur ve derle
           export NODE_OPTIONS="--max-old-space-size=4096"
           npm install --force
           npx vite build --base=./
           
-          # Derlenen dosyaları kopyala
+          # Derlenen dosyaları hazırla
           mkdir -p ../app_assets
           cp -r dist/* ../app_assets/
+          
+          # Takım logolarını ve genel dosyaları eksiksiz kopyala
+          if [ -d "public/logos" ]; then
+            mkdir -p ../app_assets/logos
+            cp -r public/logos/* ../app_assets/logos/
+          fi
+          if [ -d "public" ]; then
+            cp -r public/* ../app_assets/ 2>/dev/null || true
+          fi
 
       - name: Create Offline Native Android App
         run: |
@@ -50,7 +59,7 @@ jobs:
           mkdir -p app/src/main/res/mipmap-mdpi
           mkdir -p app/src/main/assets
 
-          # 1. Derlenmiş oyun dosyalarını assets içine taşı
+          # 1. Derlenmiş oyun ve logoları assets içine taşı
           cp -r app_assets/* app/src/main/assets/
 
           # 2. İkonu klasörlere kopyala
@@ -62,7 +71,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 3. Android Manifest (Yatay Ekran, Tamamen Yerel)
+          # 3. Android Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -87,13 +96,15 @@ jobs:
           </manifest>
           EOF
 
-          # 4. MainActivity (Yerel Dosyadan Anında Açılış)
+          # 4. MainActivity (4 Saniye Splash Gecikmesi Eklenmiş)
           cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
           package com.clubmanager.game;
 
           import android.app.Activity;
           import android.graphics.Color;
           import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
@@ -118,7 +129,20 @@ jobs:
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
 
-                  mWebView.setWebViewClient(new WebViewClient());
+                  mWebView.setWebViewClient(new WebViewClient() {
+                      @Override
+                      public void onPageFinished(WebView view, String url) {
+                          // Yüklenme ekranının 4 saniye boyunca ekranda kalmasını zorunlu kılar
+                          new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                              @Override
+                              public void run() {
+                                  // 4000 ms (4 saniye) sonra içeriğin aktifleşmesini tetikler
+                                  mWebView.evaluateJavascript("window.dispatchEvent(new Event('app-ready'));", null);
+                              }
+                          }, 4000);
+                      }
+                  });
+
                   mWebView.loadUrl("file:///android_asset/index.html");
                   setContentView(mWebView);
               }
@@ -203,5 +227,5 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Full-Offline
+          name: ClubManager27-Final-Ready
           path: final_output/*
