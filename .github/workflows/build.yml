@@ -10,10 +10,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -30,11 +30,12 @@ jobs:
           unzip -o game.zip -d game_source/
           cd game_source
           
-          # Paketleri yükle ve saf HTML/JS olarak derle
-          npm install --legacy-peer-deps
-          npm run build
+          # Vite çıktısını Android yerel (relative path) uyumlu yap
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          npm install --force
+          npx vite build --base=./
           
-          # Derlenen dosyaları hazırla
+          # Derlenen dosyaları kopyala
           mkdir -p ../app_assets
           cp -r dist/* ../app_assets/
 
@@ -118,7 +119,6 @@ jobs:
                   webSettings.setLoadWithOverviewMode(true);
 
                   mWebView.setWebViewClient(new WebViewClient());
-                  // Oyun dosyalarını doğrudan telefonun içinden (offline) çalıştırır
                   mWebView.loadUrl("file:///android_asset/index.html");
                   setContentView(mWebView);
               }
