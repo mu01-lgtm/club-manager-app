@@ -23,7 +23,6 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/clubmanager/game
           mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/mipmap-xxxhdpi
 
           # 1. Android Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -51,7 +50,7 @@ jobs:
           </manifest>
           EOF
 
-          # 2. MainActivity (Full Chromium WebView & DOM Storage)
+          # 2. MainActivity
           cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
           package com.clubmanager.game;
 
@@ -91,7 +90,7 @@ jobs:
           }
           EOF
 
-          # 3. Gradle Configs
+          # 3. Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -114,6 +113,7 @@ jobs:
           include ':app'
           EOF
 
+          # 4. App build.gradle (Debug key ile imzalı APK ve Play Store AAB)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -134,6 +134,10 @@ jobs:
               buildTypes {
                   release {
                       minifyEnabled false
+                      signingConfig signingConfigs.debug
+                  }
+                  debug {
+                      signingConfig signingConfigs.debug
                   }
               }
               compileOptions {
@@ -143,16 +147,17 @@ jobs:
           }
           EOF
 
-      - name: Build APK and AAB with Gradle
+      - name: Build Signed APK and AAB
         run: |
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleRelease
+          ./gradlew assembleDebug
           ./gradlew bundleRelease
+          mkdir -p final_output
+          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager27.apk \;
+          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager27.aab \;
 
-      - name: Upload Build Artifacts
+      - name: Upload APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Final-Package
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          name: ClubManager27-Installable
+          path: final_output/*
