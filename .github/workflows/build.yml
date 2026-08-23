@@ -1,4 +1,4 @@
-name: Build Android APK and AAB with Icon and Landscape
+name: Build Full Offline Android Game
 
 on:
   workflow_dispatch:
@@ -10,6 +10,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -19,7 +24,21 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Native WebView Project
+      - name: Extract and Build React Game
+        run: |
+          mkdir -p game_source
+          unzip -o game.zip -d game_source/
+          cd game_source
+          
+          # Paketleri yükle ve saf HTML/JS olarak derle
+          npm install --legacy-peer-deps
+          npm run build
+          
+          # Derlenen dosyaları hazırla
+          mkdir -p ../app_assets
+          cp -r dist/* ../app_assets/
+
+      - name: Create Offline Native Android App
         run: |
           mkdir -p app/src/main/java/com/clubmanager/game
           mkdir -p app/src/main/res/values
@@ -28,8 +47,12 @@ jobs:
           mkdir -p app/src/main/res/mipmap-xhdpi
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
+          mkdir -p app/src/main/assets
 
-          # İkonu klasörlere kopyala
+          # 1. Derlenmiş oyun dosyalarını assets içine taşı
+          cp -r app_assets/* app/src/main/assets/
+
+          # 2. İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -38,20 +61,17 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 1. Android Manifest (Yatay Mod: sensorLandscape)
+          # 3. Android Manifest (Yatay Ekran, Tamamen Yerel)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
                   android:allowBackup="true"
                   android:hardwareAccelerated="true"
                   android:icon="@mipmap/ic_launcher"
                   android:label="Club Manager 27"
                   android:supportsRtl="true"
-                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-                  android:usesCleartextTraffic="true">
+                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
@@ -66,14 +86,13 @@ jobs:
           </manifest>
           EOF
 
-          # 2. MainActivity
+          # 4. MainActivity (Yerel Dosyadan Anında Açılış)
           cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
           package com.clubmanager.game;
 
           import android.app.Activity;
           import android.graphics.Color;
           import android.os.Bundle;
-          import android.view.View;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
@@ -93,13 +112,14 @@ jobs:
                   webSettings.setDomStorageEnabled(true);
                   webSettings.setDatabaseEnabled(true);
                   webSettings.setAllowFileAccess(true);
+                  webSettings.setAllowFileAccessFromFileURLs(true);
+                  webSettings.setAllowUniversalAccessFromFileURLs(true);
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
-                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
-                  mWebView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
                   mWebView.setWebViewClient(new WebViewClient());
-                  mWebView.loadUrl("https://football-manager-menajerlik-oyunu.ai.studio");
+                  // Oyun dosyalarını doğrudan telefonun içinden (offline) çalıştırır
+                  mWebView.loadUrl("file:///android_asset/index.html");
                   setContentView(mWebView);
               }
 
@@ -114,7 +134,7 @@ jobs:
           }
           EOF
 
-          # 3. Root build.gradle
+          # 5. Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -137,7 +157,7 @@ jobs:
           include ':app'
           EOF
 
-          # 4. App build.gradle
+          # 6. App build.gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -183,5 +203,5 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Landscape
+          name: ClubManager27-Full-Offline
           path: final_output/*
