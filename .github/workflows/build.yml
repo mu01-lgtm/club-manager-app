@@ -7,15 +7,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -24,21 +24,45 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Bubblewrap CLI
-        run: npm install -g @bubblewrap/cli
-
-      - name: Init and Build Android TWA
+      - name: Build Web App with Capacitor
         run: |
-          mkdir build && cd build
-          bubblewrap init --manifest="https://football-manager-menajerlik-oyunu.ai.studio"
-          bubblewrap build
-        env:
-          CI: true
+          mkdir webapp && cd webapp
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          
+          # HTML dosyasını oyun linkine yönlendirecek şekilde hazırla
+          mkdir www
+          cat << 'EOF' > www/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+              body, html, iframe { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #000; }
+              iframe { border: none; }
+            </style>
+          </head>
+          <body>
+            <iframe src="https://football-manager-menajerlik-oyunu.ai.studio"></iframe>
+          </body>
+          </html>
+          EOF
 
-      - name: Upload APK and AAB
+          # Capacitor Projesini başlat ve Android platformunu ekle
+          npx cap init "Club Manager 27" "com.clubmanager.app" --web-dir="www"
+          npx cap add android
+          npx cap sync android
+
+          # Android APK ve AAB derle
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          ./gradlew bundleRelease
+
+      - name: Upload APK and AAB Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Football-Manager-Android-Build
+          name: ClubManager27-Android-Build
           path: |
-            build/*.apk
-            build/*.aab
+            webapp/android/app/build/outputs/apk/release/*.apk
+            webapp/android/app/build/outputs/bundle/release/*.aab
