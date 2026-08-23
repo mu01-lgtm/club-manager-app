@@ -10,59 +10,149 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Build Web App with Capacitor
+      - name: Create Native WebView Project
         run: |
-          mkdir webapp && cd webapp
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          
-          # HTML dosyasını oyun linkine yönlendirecek şekilde hazırla
-          mkdir www
-          cat << 'EOF' > www/index.html
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <style>
-              body, html, iframe { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background: #000; }
-              iframe { border: none; }
-            </style>
-          </head>
-          <body>
-            <iframe src="https://football-manager-menajerlik-oyunu.ai.studio"></iframe>
-          </body>
-          </html>
+          mkdir -p app/src/main/java/com/clubmanager/game
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-xxxhdpi
+
+          # 1. Android Manifest
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@android:drawable/sym_def_app_icon"
+                  android:label="Club Manager 27"
+                  android:supportsRtl="true"
+                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+                  android:usesCleartextTraffic="true">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:configChanges="orientation|screenSize|keyboardHidden">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
           EOF
 
-          # Capacitor Projesini başlat ve Android platformunu ekle
-          npx cap init "Club Manager 27" "com.clubmanager.app" --web-dir="www"
-          npx cap add android
-          npx cap sync android
+          # 2. MainActivity (Full Chromium WebView & DOM Storage)
+          cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
+          package com.clubmanager.game;
 
-          # Android APK ve AAB derle
-          cd android
-          chmod +x gradlew
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+              private WebView mWebView;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  mWebView = new WebView(this);
+                  WebSettings webSettings = mWebView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webSettings.setDatabaseEnabled(true);
+                  webSettings.setAllowFileAccess(true);
+                  webSettings.setUseWideViewPort(true);
+                  webSettings.setLoadWithOverviewMode(true);
+                  mWebView.setWebViewClient(new WebViewClient());
+                  mWebView.loadUrl("https://football-manager-menajerlik-oyunu.ai.studio");
+                  setContentView(mWebView);
+              }
+
+              @Override
+              public void onBackPressed() {
+                  if (mWebView.canGoBack()) {
+                      mWebView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
+              }
+          }
+          EOF
+
+          # 3. Gradle Configs
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.2'
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+
+          cat << 'EOF' > settings.gradle
+          include ':app'
+          EOF
+
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.clubmanager.game'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.clubmanager.game"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF
+
+      - name: Build APK and AAB with Gradle
+        run: |
+          gradle wrapper --gradle-version 8.5
           ./gradlew assembleRelease
           ./gradlew bundleRelease
 
-      - name: Upload APK and AAB Artifacts
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Android-Build
+          name: ClubManager27-Final-Package
           path: |
-            webapp/android/app/build/outputs/apk/release/*.apk
-            webapp/android/app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
