@@ -21,7 +21,7 @@ jobs:
 
       - name: Create Native Android App
         run: |
-          mkdir -p app/src/main/java/com/football/clubmanager
+          mkdir -p app/src/main/java/com/football/clubmanager2027
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
@@ -29,7 +29,7 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # İkonu klasörlere kopyala
+          # İkonu kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -38,11 +38,11 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # Android Manifest
+          # Android Manifest (Yeni Temiz Benzersiz Paket Adı)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.football.clubmanager">
+              package="com.football.clubmanager2027.game">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
@@ -68,8 +68,8 @@ jobs:
           EOF
 
           # MainActivity
-          cat << 'EOF' > app/src/main/java/com/football/clubmanager/MainActivity.java
-          package com.football.clubmanager;
+          cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/MainActivity.java
+          package com.football.clubmanager2027.game;
 
           import android.app.Activity;
           import android.graphics.Color;
@@ -140,7 +140,7 @@ jobs:
           }
           EOF
 
-          # Gradle dosyaları
+          # Root Gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -163,27 +163,27 @@ jobs:
           include ':app'
           EOF
 
+          # App Gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
           }
 
           android {
-              namespace 'com.football.clubmanager'
+              namespace 'com.football.clubmanager2027.game'
               compileSdk 35
 
               defaultConfig {
-                  applicationId "com.football.clubmanager"
+                  applicationId "com.football.clubmanager2027.game"
                   minSdk 21
                   targetSdk 35
-                  versionCode 3
-                  versionName "1.0.2"
+                  versionCode 1
+                  versionName "1.0.0"
               }
 
               buildTypes {
                   release {
                       minifyEnabled false
-                      signingConfig signingConfigs.debug
                   }
               }
               compileOptions {
@@ -193,7 +193,7 @@ jobs:
           }
           EOF
 
-      - name: Build Officially Signed Release APK and AAB
+      - name: Build Google Play Release AAB and APK
         run: |
           gradle wrapper --gradle-version 8.5
           ./gradlew bundleRelease assembleRelease
