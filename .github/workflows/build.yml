@@ -10,7 +10,7 @@ jobs:
     steps:
 
       # ============================================================
-      # 1. KODU AL
+      # 1. KODU ÇEK
       # ============================================================
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -20,10 +20,11 @@ jobs:
       # 2. JAVA 17
       # ============================================================
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
 
 
       # ============================================================
@@ -34,22 +35,22 @@ jobs:
 
 
       # ============================================================
-      # 4. ANDROID API 35 KUR
+      # 4. API 35 KUR
       # ============================================================
       - name: Install Android SDK 35
         run: |
           yes | sdkmanager --licenses || true
-
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
 
       # ============================================================
-      # 5. ANDROID PROJESİNİ OLUŞTUR
+      # 5. NATIVE ANDROID PROJESİNİ OLUŞTUR
       # ============================================================
       - name: Create Native Android App
+        shell: bash
         run: |
+
+          set -e
 
           mkdir -p app/src/main/java/com/football/clubmanager2027/game
 
@@ -63,43 +64,24 @@ jobs:
 
 
           # ========================================================
-          # KEYSORE
+          # SABİT KEYSTORE
           # ========================================================
-          #
-          # BURADA MEVCUT build.yml DOSYANDAKİ
-          # "1. Sabit Keystore Dosyası" BÖLÜMÜNÜ
-          # AYNEN KORU.
-          #
-          # Yani mevcut dosyandaki:
-          #
-          # cat << 'EOF' | base64 -d > app/upload_keystore.jks
-          # ...
-          # EOF
-          #
-          # kısmını silme ve değiştirme.
+
+          cat << 'EOF' | base64 -d > app/upload_keystore.jks
+          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
+          EOF
 
 
           # ========================================================
-          # ICON
+          # İKON
           # ========================================================
 
           if [ -f "icon.png" ]; then
-
-            cp icon.png \
-              app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-
-            cp icon.png \
-              app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-
-            cp icon.png \
-              app/src/main/res/mipmap-xhdpi/ic_launcher.png
-
-            cp icon.png \
-              app/src/main/res/mipmap-hdpi/ic_launcher.png
-
-            cp icon.png \
-              app/src/main/res/mipmap-mdpi/ic_launcher.png
-
+            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
+            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
 
@@ -108,17 +90,12 @@ jobs:
           # ========================================================
 
           cat << 'EOF' > app/src/main/AndroidManifest.xml
-
           <?xml version="1.0" encoding="utf-8"?>
 
-          <manifest
-              xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission
-                  android:name="android.permission.INTERNET" />
-
-              <uses-permission
-                  android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
               <application
                   android:allowBackup="true"
@@ -136,13 +113,8 @@ jobs:
                       android:configChanges="orientation|screenSize|keyboardHidden">
 
                       <intent-filter>
-
-                          <action
-                              android:name="android.intent.action.MAIN" />
-
-                          <category
-                              android:name="android.intent.category.LAUNCHER" />
-
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
                       </intent-filter>
 
                   </activity>
@@ -150,7 +122,6 @@ jobs:
               </application>
 
           </manifest>
-
           EOF
 
 
@@ -159,7 +130,6 @@ jobs:
           # ========================================================
 
           cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/game/MainActivity.java
-
           package com.football.clubmanager2027.game;
 
           import android.app.Activity;
@@ -186,8 +156,7 @@ jobs:
 
                   mWebView.setBackgroundColor(Color.BLACK);
 
-                  WebSettings webSettings =
-                      mWebView.getSettings();
+                  WebSettings webSettings = mWebView.getSettings();
 
                   webSettings.setJavaScriptEnabled(true);
                   webSettings.setDomStorageEnabled(true);
@@ -210,7 +179,6 @@ jobs:
                       CookieManager.getInstance();
 
                   cookieManager.setAcceptCookie(true);
-
                   cookieManager.setAcceptThirdPartyCookies(
                       mWebView,
                       true
@@ -245,15 +213,12 @@ jobs:
                                               "window.dispatchEvent(new Event('app-ready'));",
                                               null
                                           );
-
                                       }
 
                                   },
                                   4000
                               );
-
                           }
-
                       }
                   );
 
@@ -269,19 +234,12 @@ jobs:
               public void onBackPressed() {
 
                   if (mWebView.canGoBack()) {
-
                       mWebView.goBack();
-
                   } else {
-
                       super.onBackPressed();
-
                   }
-
               }
-
           }
-
           EOF
 
 
@@ -296,12 +254,11 @@ jobs:
               repositories {
                   google()
                   mavenCentral()
-              }
+          }
 
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.2'
               }
-
           }
 
           allprojects {
@@ -310,14 +267,13 @@ jobs:
                   google()
                   mavenCentral()
               }
-
           }
 
           EOF
 
 
           # ========================================================
-          # SETTINGS
+          # SETTINGS GRADLE
           # ========================================================
 
           cat << 'EOF' > settings.gradle
@@ -350,6 +306,7 @@ jobs:
 
           # ========================================================
           # APP GRADLE
+          # API 35 + JAVA 17 + RELEASE SIGNING
           # ========================================================
 
           cat << 'EOF' > app/build.gradle
@@ -358,18 +315,11 @@ jobs:
               id 'com.android.application'
           }
 
-
           android {
 
               namespace 'com.football.clubmanager2027.game'
 
-
-              // ====================================================
-              // GOOGLE PLAY API 35
-              // ====================================================
-
               compileSdk 35
-
 
               defaultConfig {
 
@@ -379,47 +329,26 @@ jobs:
 
                   targetSdk 35
 
+                  versionCode 1
 
-                  // =================================================
-                  // YENİ PLAY STORE SÜRÜMÜ
-                  // =================================================
-
-                  versionCode 2
-
-                  versionName "1.0.1"
-
+                  versionName "1.0.0"
               }
 
-
-              // ====================================================
-              // SIGNING
-              // ====================================================
 
               signingConfigs {
 
                   release {
 
-                      storeFile file(
-                          'upload_keystore.jks'
-                      )
+                      storeFile file('upload_keystore.jks')
 
-                      /*
-                       * MEVCUT DOSYANDAKİ
-                       * signing bilgilerini AYNEN KORU.
-                       *
-                       * storePassword
-                       * keyAlias
-                       * keyPassword
-                       */
+                      storePassword 'ClubManagerPass123'
 
+                      keyAlias 'upload'
+
+                      keyPassword 'ClubManagerPass123'
                   }
-
               }
 
-
-              // ====================================================
-              // BUILD TYPES
-              // ====================================================
 
               buildTypes {
 
@@ -430,31 +359,21 @@ jobs:
                       shrinkResources false
 
                       signingConfig signingConfigs.release
-
                   }
-
 
                   debug {
 
                       signingConfig signingConfigs.release
-
                   }
-
               }
 
-
-              // ====================================================
-              // JAVA 17
-              // ====================================================
 
               compileOptions {
 
                   sourceCompatibility JavaVersion.VERSION_17
 
                   targetCompatibility JavaVersion.VERSION_17
-
               }
-
           }
 
           EOF
@@ -464,21 +383,56 @@ jobs:
       # 6. KEYSTORE KONTROLÜ
       # ============================================================
       - name: Verify Keystore
+        shell: bash
         run: |
+
+          set -e
+
+          echo "======================================"
+          echo "KEYSTORE KONTROLÜ"
+          echo "======================================"
 
           if [ ! -f "app/upload_keystore.jks" ]; then
 
-            echo "ERROR: upload_keystore.jks bulunamadı!"
+            echo "ERROR: app/upload_keystore.jks bulunamadı!"
+
+            echo ""
+            echo "Mevcut klasör:"
+            pwd
+
+            echo ""
+            echo "Root dosyaları:"
+            ls -la
+
+            echo ""
+            echo "App klasörü:"
+            ls -la app || true
 
             exit 1
-
           fi
+
 
           echo "Keystore bulundu."
 
+          ls -lh app/upload_keystore.jks
+
+
+          echo ""
+          echo "Keystore doğrulanıyor..."
+
+
+          keytool -list \
+            -keystore app/upload_keystore.jks \
+            -storepass 'ClubManagerPass123' \
+            -alias upload
+
+
+          echo ""
+          echo "Keystore doğrulama BAŞARILI."
+
 
       # ============================================================
-      # 7. GRADLE 8.5
+      # 7. GRADLE KUR
       # ============================================================
       - name: Setup Gradle
         run: |
@@ -489,7 +443,7 @@ jobs:
 
 
       # ============================================================
-      # 8. TEMİZ BUILD
+      # 8. TEMİZLE
       # ============================================================
       - name: Clean Project
         run: |
@@ -498,7 +452,7 @@ jobs:
 
 
       # ============================================================
-      # 9. AAB + APK BUILD
+      # 9. AAB + APK OLUŞTUR
       # ============================================================
       - name: Build Release AAB and APK
         run: |
@@ -506,76 +460,102 @@ jobs:
           ./gradlew \
             bundleRelease \
             assembleRelease \
-            --no-daemon \
             --stacktrace
 
 
       # ============================================================
-      # 10. OUTPUT
+      # 10. API 35 KONTROL
+      # ============================================================
+      - name: Verify Android API and Version
+        run: |
+
+          echo "======================================"
+          echo "ANDROID BUILD KONTROLÜ"
+          echo "======================================"
+
+          echo "Compile SDK:"
+          grep "compileSdk" app/build.gradle
+
+          echo "Target SDK:"
+          grep "targetSdk" app/build.gradle
+
+          echo "Version:"
+          grep "versionName" app/build.gradle
+
+          echo ""
+          echo "Oluşturulan dosyalar:"
+
+          find app/build/outputs/ \
+            -type f \
+            \( -name "*.aab" -o -name "*.apk" \) \
+            -print
+
+
+      # ============================================================
+      # 11. RELEASE DOSYALARINI HAZIRLA
       # ============================================================
       - name: Prepare Release Files
+        shell: bash
         run: |
+
+          set -e
+
+          rm -rf final_output
 
           mkdir -p final_output
 
 
-          find app/build/outputs/ \
+          # Play Store AAB
+          AAB_FILE=$(find app/build/outputs/ \
             -type f \
             -name "*.aab" \
-            -exec cp {} \
-            final_output/ClubManager2027-PlayStore.aab \;
+            | head -n 1)
 
 
-          find app/build/outputs/ \
+          if [ -z "$AAB_FILE" ]; then
+
+            echo "ERROR: AAB bulunamadı!"
+
+            exit 1
+          fi
+
+
+          cp "$AAB_FILE" \
+            final_output/ClubManager2027-PlayStore.aab
+
+
+          # Direct APK
+          APK_FILE=$(find app/build/outputs/ \
             -type f \
             -name "*.apk" \
-            -exec cp {} \
-            final_output/ClubManager2027-DirectInstall.apk \;
+            | head -n 1)
 
 
-          echo "====================================="
-          echo "BUILD TAMAMLANDI"
-          echo "====================================="
+          if [ -z "$APK_FILE" ]; then
+
+            echo "ERROR: APK bulunamadı!"
+
+            exit 1
+          fi
+
+
+          cp "$APK_FILE" \
+            final_output/ClubManager2027-DirectInstall.apk
+
+
+          echo ""
+          echo "======================================"
+          echo "RELEASE DOSYALARI"
+          echo "======================================"
 
           ls -lh final_output/
 
 
       # ============================================================
-      # 11. API 35 KONTROLÜ
+      # 12. ARTIFACT YÜKLE
       # ============================================================
-      - name: Verify Android API and Version
-        run: |
-
-          echo "====================================="
-          echo "GOOGLE PLAY BUILD KONTROLÜ"
-          echo "====================================="
-
-          echo "Compile SDK: 35"
-          echo "Target SDK: 35"
-          echo "Version Code: 2"
-          echo "Version Name: 1.0.1"
-
-          echo ""
-          echo "AAB DOSYASI:"
-
-          ls -lh \
-            final_output/ClubManager2027-PlayStore.aab
-
-          echo ""
-          echo "APK DOSYASI:"
-
-          ls -lh \
-            final_output/ClubManager2027-DirectInstall.apk
-
-          echo "====================================="
-
-
-      # ============================================================
-      # 12. ARTIFACT
-      # ============================================================
-      - name: Upload Release Files
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
-
         with:
 
           name: ClubManager2027-Release-Files
@@ -583,3 +563,5 @@ jobs:
           path: final_output/*
 
           if-no-files-found: error
+
+          retention-days: 30
