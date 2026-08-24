@@ -21,7 +21,7 @@ jobs:
 
       - name: Create Native Android App & Keystore
         run: |
-          mkdir -p app/src/main/java/com/clubmanager/game
+          mkdir -p app/src/main/java/com/football/clubmanager2027
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
@@ -29,8 +29,8 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # 1. Google Play Yayınlama Anahtarı (Keystore) Üret
-          keytool -genkey -v -keystore app/release.jks -alias clubmanager -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
+          # 1. Google Play Release Keystore Üret
+          keytool -genkey -v -keystore app/release.keystore -alias releaseKey -keyalg RSA -keysize 2048 -validity 10000 -storepass "ClubManager2027Pass" -keypass "ClubManager2027Pass" -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
 
           # 2. İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
@@ -41,10 +41,11 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 3. Android Manifest
+          # 3. Android Manifest (Google Play ile %100 Uyumlu Paket Adı)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+              package="com.football.clubmanager2027">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
@@ -70,8 +71,8 @@ jobs:
           EOF
 
           # 4. MainActivity
-          cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
-          package com.clubmanager.game;
+          cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/MainActivity.java
+          package com.football.clubmanager2027;
 
           import android.app.Activity;
           import android.graphics.Color;
@@ -165,18 +166,18 @@ jobs:
           include ':app'
           EOF
 
-          # 6. App build.gradle
+          # 6. App build.gradle (Tam Eşleşen Paket Adı: com.football.clubmanager2027)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
           }
 
           android {
-              namespace 'com.clubmanager.game'
+              namespace 'com.football.clubmanager2027'
               compileSdk 34
 
               defaultConfig {
-                  applicationId "com.clubmanager.game"
+                  applicationId "com.football.clubmanager2027"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
@@ -185,10 +186,10 @@ jobs:
 
               signingConfigs {
                   release {
-                      storeFile file('release.jks')
-                      storePassword '123456'
-                      keyAlias 'clubmanager'
-                      keyPassword '123456'
+                      storeFile file('release.keystore')
+                      storePassword 'ClubManager2027Pass'
+                      keyAlias 'releaseKey'
+                      keyPassword 'ClubManager2027Pass'
                   }
               }
 
@@ -208,16 +209,15 @@ jobs:
           }
           EOF
 
-      - name: Build Officially Signed Release APK and AAB
+      - name: Build Officially Signed Release AAB
         run: |
           gradle wrapper --gradle-version 8.5
-          ./gradlew bundleRelease assembleRelease
+          ./gradlew bundleRelease
           mkdir -p final_output
-          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager2027.apk \;
-          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager2027.aab \;
+          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager2027-Final.aab \;
 
       - name: Upload Play Store Ready Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager2027-PlayStore-Signed
+          name: ClubManager2027-PlayStore-AAB
           path: final_output/*
