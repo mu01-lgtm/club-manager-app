@@ -19,7 +19,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Native Android App
+      - name: Create Native Android App & Keystore
         run: |
           mkdir -p app/src/main/java/com/clubmanager/game
           mkdir -p app/src/main/res/values
@@ -29,7 +29,10 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # 1. İkonu klasörlere kopyala
+          # 1. Google Play Resmi Yayınlama Anahtarı (Release Keystore)
+          keytool -genkey -v -keystore release.jks -alias clubmanager -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
+
+          # 2. İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -38,7 +41,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 2. Android Manifest (Tam İnternet ve Resim Yükleme İzinleri)
+          # 3. Android Manifest (Uygulama Adı: Club Manager 2027 - Football)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -48,7 +51,7 @@ jobs:
                   android:allowBackup="true"
                   android:hardwareAccelerated="true"
                   android:icon="@mipmap/ic_launcher"
-                  android:label="Club Manager 27"
+                  android:label="Club Manager 2027 - Football"
                   android:supportsRtl="true"
                   android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
                   android:usesCleartextTraffic="true">
@@ -66,7 +69,7 @@ jobs:
           </manifest>
           EOF
 
-          # 3. MainActivity (Tüm Resim Kaynaklarına ve Karışık İçeriğe İzin Veren WebView)
+          # 4. MainActivity
           cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
           package com.clubmanager.game;
 
@@ -99,13 +102,10 @@ jobs:
                   webSettings.setAllowContentAccess(true);
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
-                  
-                  // Resim yükleme ve karışık içerik (HTTP/HTTPS resimleri) izinleri
                   webSettings.setLoadsImagesAutomatically(true);
                   webSettings.setBlockNetworkImage(false);
                   webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
-                  // Harici resim kaynakları için üçüncü taraf çerezlerine izin ver
                   CookieManager cookieManager = CookieManager.getInstance();
                   cookieManager.setAcceptCookie(true);
                   cookieManager.setAcceptThirdPartyCookies(mWebView, true);
@@ -142,7 +142,7 @@ jobs:
           }
           EOF
 
-          # 4. Root build.gradle
+          # 5. Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -165,7 +165,7 @@ jobs:
           include ':app'
           EOF
 
-          # 5. App build.gradle
+          # 6. App build.gradle (Resmi Release Key)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -180,16 +180,25 @@ jobs:
                   minSdk 21
                   targetSdk 34
                   versionCode 1
-                  versionName "1.0"
+                  versionName "1.0.0"
+              }
+
+              signingConfigs {
+                  release {
+                      storeFile file('../../release.jks')
+                      storePassword '123456'
+                      keyAlias 'clubmanager'
+                      keyPassword '123456'
+                  }
               }
 
               buildTypes {
                   release {
                       minifyEnabled false
-                      signingConfig signingConfigs.debug
+                      signingConfig signingConfigs.release
                   }
                   debug {
-                      signingConfig signingConfigs.debug
+                      signingConfig signingConfigs.release
                   }
               }
               compileOptions {
@@ -199,17 +208,17 @@ jobs:
           }
           EOF
 
-      - name: Build Signed APK and AAB
+      - name: Build Officially Signed Release APK and AAB
         run: |
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
           ./gradlew bundleRelease
           mkdir -p final_output
-          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager27.apk \;
-          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager27.aab \;
+          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager2027.apk \;
+          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager2027.aab \;
 
-      - name: Upload Artifacts
+      - name: Upload Play Store Ready Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Live-FixedImages
+          name: ClubManager2027-PlayStore-Signed
           path: final_output/*
