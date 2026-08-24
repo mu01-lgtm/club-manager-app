@@ -19,7 +19,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Native Android App
+      - name: Create Native Android App & Signing Key
         run: |
           mkdir -p app/src/main/java/com/football/clubmanager2027
           mkdir -p app/src/main/res/values
@@ -29,7 +29,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # İkonu kopyala
+          # 1. Sabit Release Keystore Üretimi
+          keytool -genkeypair -alias clubkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -keystore app/release.keystore \
+            -storepass "ClubManagerPass123" \
+            -keypass "ClubManagerPass123" \
+            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
+
+          # 2. İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -38,7 +45,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # Android Manifest (Yeni Temiz Benzersiz Paket Adı)
+          # 3. Android Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -67,7 +74,7 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity
+          # 4. MainActivity
           cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/MainActivity.java
           package com.football.clubmanager2027.game;
 
@@ -140,7 +147,7 @@ jobs:
           }
           EOF
 
-          # Root Gradle
+          # 5. Root Gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -163,7 +170,7 @@ jobs:
           include ':app'
           EOF
 
-          # App Gradle
+          # 6. App Gradle (İmzayı Kesin Bağlayan Yapılandırma)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -181,9 +188,22 @@ jobs:
                   versionName "1.0.0"
               }
 
+              signingConfigs {
+                  release {
+                      storeFile file('release.keystore')
+                      storePassword 'ClubManagerPass123'
+                      keyAlias 'clubkey'
+                      keyPassword 'ClubManagerPass123'
+                  }
+              }
+
               buildTypes {
                   release {
                       minifyEnabled false
+                      signingConfig signingConfigs.release
+                  }
+                  debug {
+                      signingConfig signingConfigs.release
                   }
               }
               compileOptions {
@@ -193,7 +213,7 @@ jobs:
           }
           EOF
 
-      - name: Build Google Play Release AAB and APK
+      - name: Build Google Play Release Signed AAB and APK
         run: |
           gradle wrapper --gradle-version 8.5
           ./gradlew bundleRelease assembleRelease
