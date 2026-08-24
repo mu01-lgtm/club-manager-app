@@ -19,9 +19,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Native Android App
+      - name: Create Native Android App & Keystore
         run: |
-          mkdir -p app/src/main/java/com/football/clubmanager2027
+          mkdir -p app/src/main/java/com/football/clubmanager
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
@@ -29,14 +29,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Sabit ve tutarlı Release Key üretimi
+          # 1. Sabit Release Keystore Üretimi
           keytool -genkeypair -alias uploadKey -keyalg RSA -keysize 2048 -validity 10000 \
             -keystore app/upload.keystore \
             -storepass "ClubManagerPass123" \
             -keypass "ClubManagerPass123" \
             -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
 
-          # İkonu klasörlere kopyala
+          # 2. İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -45,11 +45,11 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # Android Manifest
+          # 3. Android Manifest (Yeni Temiz Paket Adı: com.football.clubmanager)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-              package="com.football.clubmanager2027">
+              package="com.football.clubmanager">
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <application
@@ -74,9 +74,9 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity
-          cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/MainActivity.java
-          package com.football.clubmanager2027;
+          # 4. MainActivity
+          cat << 'EOF' > app/src/main/java/com/football/clubmanager/MainActivity.java
+          package com.football.clubmanager;
 
           import android.app.Activity;
           import android.graphics.Color;
@@ -147,7 +147,7 @@ jobs:
           }
           EOF
 
-          # Root Gradle
+          # 5. Root build.gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -170,18 +170,18 @@ jobs:
           include ':app'
           EOF
 
-          # App build.gradle
+          # 6. App build.gradle (Yeni Paket Adı & Release İmzası)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
           }
 
           android {
-              namespace 'com.football.clubmanager2027'
+              namespace 'com.football.clubmanager'
               compileSdk 34
 
               defaultConfig {
-                  applicationId "com.football.clubmanager2027"
+                  applicationId "com.football.clubmanager"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
@@ -224,5 +224,5 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager2027-Release-Build
+          name: ClubManager2027-Release-Files
           path: final_output/*
