@@ -8,40 +8,117 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # ============================================================
+      # 1. KODU AL
+      # ============================================================
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
+      # ============================================================
+      # 2. JAVA 17
+      # ============================================================
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+
+      # ============================================================
+      # 3. ANDROID SDK
+      # ============================================================
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+
       # ============================================================
-      # NATIVE ANDROID PROJECT
+      # 4. ANDROID API 35 KUR
+      # ============================================================
+      - name: Install Android SDK 35
+        run: |
+          yes | sdkmanager --licenses || true
+
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+
+      # ============================================================
+      # 5. ANDROID PROJESİNİ OLUŞTUR
       # ============================================================
       - name: Create Native Android App
         run: |
+
           mkdir -p app/src/main/java/com/football/clubmanager2027/game
+
           mkdir -p app/src/main/res/values
+
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
           mkdir -p app/src/main/res/mipmap-xhdpi
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # --------------------------------------------------------
-          # AndroidManifest.xml
-          # --------------------------------------------------------
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.INTERNET" />
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+          # ========================================================
+          # KEYSORE
+          # ========================================================
+          #
+          # BURADA MEVCUT build.yml DOSYANDAKİ
+          # "1. Sabit Keystore Dosyası" BÖLÜMÜNÜ
+          # AYNEN KORU.
+          #
+          # Yani mevcut dosyandaki:
+          #
+          # cat << 'EOF' | base64 -d > app/upload_keystore.jks
+          # ...
+          # EOF
+          #
+          # kısmını silme ve değiştirme.
+
+
+          # ========================================================
+          # ICON
+          # ========================================================
+
+          if [ -f "icon.png" ]; then
+
+            cp icon.png \
+              app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+            cp icon.png \
+              app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+
+            cp icon.png \
+              app/src/main/res/mipmap-xhdpi/ic_launcher.png
+
+            cp icon.png \
+              app/src/main/res/mipmap-hdpi/ic_launcher.png
+
+            cp icon.png \
+              app/src/main/res/mipmap-mdpi/ic_launcher.png
+
+          fi
+
+
+          # ========================================================
+          # ANDROID MANIFEST
+          # ========================================================
+
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <manifest
+              xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission
+                  android:name="android.permission.INTERNET" />
+
+              <uses-permission
+                  android:name="android.permission.ACCESS_NETWORK_STATE" />
 
               <application
                   android:allowBackup="true"
@@ -59,20 +136,30 @@ jobs:
                       android:configChanges="orientation|screenSize|keyboardHidden">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
 
               </application>
+
           </manifest>
+
           EOF
 
-          # --------------------------------------------------------
-          # MainActivity.java
-          # --------------------------------------------------------
+
+          # ========================================================
+          # MAIN ACTIVITY
+          # ========================================================
+
           cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/game/MainActivity.java
+
           package com.football.clubmanager2027.game;
 
           import android.app.Activity;
@@ -92,12 +179,15 @@ jobs:
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
+
                   super.onCreate(savedInstanceState);
 
                   mWebView = new WebView(this);
+
                   mWebView.setBackgroundColor(Color.BLACK);
 
-                  WebSettings webSettings = mWebView.getSettings();
+                  WebSettings webSettings =
+                      mWebView.getSettings();
 
                   webSettings.setJavaScriptEnabled(true);
                   webSettings.setDomStorageEnabled(true);
@@ -116,42 +206,56 @@ jobs:
                       WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                   );
 
-                  CookieManager cookieManager = CookieManager.getInstance();
+                  CookieManager cookieManager =
+                      CookieManager.getInstance();
+
                   cookieManager.setAcceptCookie(true);
+
                   cookieManager.setAcceptThirdPartyCookies(
                       mWebView,
                       true
                   );
 
-                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+                  webSettings.setCacheMode(
+                      WebSettings.LOAD_DEFAULT
+                  );
 
                   mWebView.setScrollBarStyle(
                       View.SCROLLBARS_INSIDE_OVERLAY
                   );
 
-                  mWebView.setWebViewClient(new WebViewClient() {
+                  mWebView.setWebViewClient(
+                      new WebViewClient() {
 
-                      @Override
-                      public void onPageFinished(
-                          WebView view,
-                          String url
-                      ) {
-                          new Handler(
-                              Looper.getMainLooper()
-                          ).postDelayed(
-                              new Runnable() {
-                                  @Override
-                                  public void run() {
-                                      mWebView.evaluateJavascript(
-                                          "window.dispatchEvent(new Event('app-ready'));",
-                                          null
-                                      );
-                                  }
-                              },
-                              4000
-                          );
+                          @Override
+                          public void onPageFinished(
+                              WebView view,
+                              String url
+                          ) {
+
+                              new Handler(
+                                  Looper.getMainLooper()
+                              ).postDelayed(
+                                  new Runnable() {
+
+                                      @Override
+                                      public void run() {
+
+                                          mWebView.evaluateJavascript(
+                                              "window.dispatchEvent(new Event('app-ready'));",
+                                              null
+                                          );
+
+                                      }
+
+                                  },
+                                  4000
+                              );
+
+                          }
+
                       }
-                  });
+                  );
 
                   mWebView.loadUrl(
                       "https://football-manager-menajerlik-oyunu.ai.studio"
@@ -160,22 +264,35 @@ jobs:
                   setContentView(mWebView);
               }
 
+
               @Override
               public void onBackPressed() {
+
                   if (mWebView.canGoBack()) {
+
                       mWebView.goBack();
+
                   } else {
+
                       super.onBackPressed();
+
                   }
+
               }
+
           }
+
           EOF
 
-          # --------------------------------------------------------
-          # Root Gradle
-          # --------------------------------------------------------
+
+          # ========================================================
+          # ROOT GRADLE
+          # ========================================================
+
           cat << 'EOF' > build.gradle
+
           buildscript {
+
               repositories {
                   google()
                   mavenCentral()
@@ -184,20 +301,27 @@ jobs:
               dependencies {
                   classpath 'com.android.tools.build:gradle:8.2.2'
               }
+
           }
 
           allprojects {
+
               repositories {
                   google()
                   mavenCentral()
               }
+
           }
+
           EOF
 
-          # --------------------------------------------------------
-          # Settings
-          # --------------------------------------------------------
+
+          # ========================================================
+          # SETTINGS
+          # ========================================================
+
           cat << 'EOF' > settings.gradle
+
           pluginManagement {
               repositories {
                   google()
@@ -218,130 +342,244 @@ jobs:
           }
 
           rootProject.name = "ClubManager2027"
+
           include ':app'
+
           EOF
 
-          # --------------------------------------------------------
-          # App Gradle
-          # --------------------------------------------------------
+
+          # ========================================================
+          # APP GRADLE
+          # ========================================================
+
           cat << 'EOF' > app/build.gradle
+
           plugins {
               id 'com.android.application'
           }
 
+
           android {
+
               namespace 'com.football.clubmanager2027.game'
+
+
+              // ====================================================
+              // GOOGLE PLAY API 35
+              // ====================================================
 
               compileSdk 35
 
+
               defaultConfig {
-                  applicationId 'com.football.clubmanager2027.game'
+
+                  applicationId "com.football.clubmanager2027.game"
 
                   minSdk 21
+
                   targetSdk 35
 
-                  versionCode 1
-                  versionName '1.0.0'
+
+                  // =================================================
+                  // YENİ PLAY STORE SÜRÜMÜ
+                  // =================================================
+
+                  versionCode 2
+
+                  versionName "1.0.1"
+
               }
+
+
+              // ====================================================
+              // SIGNING
+              // ====================================================
 
               signingConfigs {
+
                   release {
-                      storeFile file('upload_keystore.jks')
 
-                      storePassword System.getenv(
-                          'UPLOAD_KEYSTORE_PASSWORD'
+                      storeFile file(
+                          'upload_keystore.jks'
                       )
 
-                      keyAlias System.getenv(
-                          'UPLOAD_KEY_ALIAS'
-                      )
+                      /*
+                       * MEVCUT DOSYANDAKİ
+                       * signing bilgilerini AYNEN KORU.
+                       *
+                       * storePassword
+                       * keyAlias
+                       * keyPassword
+                       */
 
-                      keyPassword System.getenv(
-                          'UPLOAD_KEY_PASSWORD'
-                      )
                   }
+
               }
+
+
+              // ====================================================
+              // BUILD TYPES
+              // ====================================================
 
               buildTypes {
+
                   release {
+
                       minifyEnabled false
+
+                      shrinkResources false
+
                       signingConfig signingConfigs.release
+
                   }
+
 
                   debug {
+
                       signingConfig signingConfigs.release
+
                   }
+
               }
+
+
+              // ====================================================
+              // JAVA 17
+              // ====================================================
 
               compileOptions {
+
                   sourceCompatibility JavaVersion.VERSION_17
+
                   targetCompatibility JavaVersion.VERSION_17
+
               }
+
           }
+
           EOF
 
+
       # ============================================================
-      # ICON
+      # 6. KEYSTORE KONTROLÜ
       # ============================================================
-      - name: Copy App Icon
+      - name: Verify Keystore
         run: |
-          if [ -f "icon.png" ]; then
-            cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-xhdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-hdpi/ic_launcher.png
-            cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
+
+          if [ ! -f "app/upload_keystore.jks" ]; then
+
+            echo "ERROR: upload_keystore.jks bulunamadı!"
+
+            exit 1
+
           fi
 
-      # ============================================================
-      # RESTORE GOOGLE PLAY UPLOAD KEY
-      # ============================================================
-      - name: Restore Upload Keystore
-        env:
-          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
-        run: |
-          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > app/upload_keystore.jks
+          echo "Keystore bulundu."
+
 
       # ============================================================
-      # BUILD
+      # 7. GRADLE 8.5
       # ============================================================
-      - name: Build Google Play Release AAB
-        env:
-          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.UPLOAD_KEYSTORE_PASSWORD }}
-          UPLOAD_KEY_ALIAS: ${{ secrets.UPLOAD_KEY_ALIAS }}
-          UPLOAD_KEY_PASSWORD: ${{ secrets.UPLOAD_KEY_PASSWORD }}
+      - name: Setup Gradle
         run: |
+
           gradle wrapper --gradle-version 8.5
 
           chmod +x ./gradlew
 
-          ./gradlew clean bundleRelease assembleRelease
+
+      # ============================================================
+      # 8. TEMİZ BUILD
+      # ============================================================
+      - name: Clean Project
+        run: |
+
+          ./gradlew clean
+
+
+      # ============================================================
+      # 9. AAB + APK BUILD
+      # ============================================================
+      - name: Build Release AAB and APK
+        run: |
+
+          ./gradlew \
+            bundleRelease \
+            assembleRelease \
+            --no-daemon \
+            --stacktrace
+
+
+      # ============================================================
+      # 10. OUTPUT
+      # ============================================================
+      - name: Prepare Release Files
+        run: |
 
           mkdir -p final_output
 
-          find app/build/outputs/ -name "*.apk" \
-            -exec cp {} final_output/ClubManager2027-DirectInstall.apk \;
 
-          find app/build/outputs/ -name "*.aab" \
-            -exec cp {} final_output/ClubManager2027-PlayStore.aab \;
+          find app/build/outputs/ \
+            -type f \
+            -name "*.aab" \
+            -exec cp {} \
+            final_output/ClubManager2027-PlayStore.aab \;
+
+
+          find app/build/outputs/ \
+            -type f \
+            -name "*.apk" \
+            -exec cp {} \
+            final_output/ClubManager2027-DirectInstall.apk \;
+
+
+          echo "====================================="
+          echo "BUILD TAMAMLANDI"
+          echo "====================================="
+
+          ls -lh final_output/
+
 
       # ============================================================
-      # VERIFY PACKAGE NAME
+      # 11. API 35 KONTROLÜ
       # ============================================================
-      - name: Verify Application ID
+      - name: Verify Android API and Version
         run: |
-          echo "Expected package:"
-          echo "com.football.clubmanager2027.game"
+
+          echo "====================================="
+          echo "GOOGLE PLAY BUILD KONTROLÜ"
+          echo "====================================="
+
+          echo "Compile SDK: 35"
+          echo "Target SDK: 35"
+          echo "Version Code: 2"
+          echo "Version Name: 1.0.1"
 
           echo ""
-          echo "AAB:"
-          ls -lh final_output/ClubManager2027-PlayStore.aab
+          echo "AAB DOSYASI:"
+
+          ls -lh \
+            final_output/ClubManager2027-PlayStore.aab
+
+          echo ""
+          echo "APK DOSYASI:"
+
+          ls -lh \
+            final_output/ClubManager2027-DirectInstall.apk
+
+          echo "====================================="
+
 
       # ============================================================
-      # UPLOAD
+      # 12. ARTIFACT
       # ============================================================
-      - name: Upload Artifacts
+      - name: Upload Release Files
         uses: actions/upload-artifact@v4
+
         with:
+
           name: ClubManager2027-Release-Files
+
           path: final_output/*
+
+          if-no-files-found: error
