@@ -19,7 +19,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Create Native Android App & Keystore
+      - name: Create Native Android App
         run: |
           mkdir -p app/src/main/java/com/football/clubmanager
           mkdir -p app/src/main/res/values
@@ -29,14 +29,7 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # 1. Sabit Release Keystore Üretimi
-          keytool -genkeypair -alias uploadKey -keyalg RSA -keysize 2048 -validity 10000 \
-            -keystore app/upload.keystore \
-            -storepass "ClubManagerPass123" \
-            -keypass "ClubManagerPass123" \
-            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
-
-          # 2. İkonu klasörlere kopyala
+          # İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -45,7 +38,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 3. Android Manifest
+          # Android Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -74,7 +67,7 @@ jobs:
           </manifest>
           EOF
 
-          # 4. MainActivity
+          # MainActivity
           cat << 'EOF' > app/src/main/java/com/football/clubmanager/MainActivity.java
           package com.football.clubmanager;
 
@@ -147,7 +140,7 @@ jobs:
           }
           EOF
 
-          # 5. Root build.gradle
+          # Gradle dosyaları
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -170,7 +163,6 @@ jobs:
           include ':app'
           EOF
 
-          # 6. App build.gradle (API 35 ve VersionCode 2)
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -184,26 +176,14 @@ jobs:
                   applicationId "com.football.clubmanager"
                   minSdk 21
                   targetSdk 35
-                  versionCode 2
-                  versionName "1.0.1"
-              }
-
-              signingConfigs {
-                  release {
-                      storeFile file('upload.keystore')
-                      storePassword 'ClubManagerPass123'
-                      keyAlias 'uploadKey'
-                      keyPassword 'ClubManagerPass123'
-                  }
+                  versionCode 3
+                  versionName "1.0.2"
               }
 
               buildTypes {
                   release {
                       minifyEnabled false
-                      signingConfig signingConfigs.release
-                  }
-                  debug {
-                      signingConfig signingConfigs.release
+                      signingConfig signingConfigs.debug
                   }
               }
               compileOptions {
