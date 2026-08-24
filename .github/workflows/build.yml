@@ -38,7 +38,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 2. Android Manifest (Yatay Ekran, İnternet İzinleri)
+          # 2. Android Manifest (Tam İnternet ve Resim Yükleme İzinleri)
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -66,7 +66,7 @@ jobs:
           </manifest>
           EOF
 
-          # 3. MainActivity (4 Saniye Splash Ekranı + Canlı Oyun URL'si + Hızlı Önbellek)
+          # 3. MainActivity (Tüm Resim Kaynaklarına ve Karışık İçeriğe İzin Veren WebView)
           cat << 'EOF' > app/src/main/java/com/clubmanager/game/MainActivity.java
           package com.clubmanager.game;
 
@@ -76,6 +76,7 @@ jobs:
           import android.os.Handler;
           import android.os.Looper;
           import android.view.View;
+          import android.webkit.CookieManager;
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
@@ -95,10 +96,20 @@ jobs:
                   webSettings.setDomStorageEnabled(true);
                   webSettings.setDatabaseEnabled(true);
                   webSettings.setAllowFileAccess(true);
+                  webSettings.setAllowContentAccess(true);
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
                   
-                  // Hızlı Açılış ve Önbellekleme Ayarları
+                  // Resim yükleme ve karışık içerik (HTTP/HTTPS resimleri) izinleri
+                  webSettings.setLoadsImagesAutomatically(true);
+                  webSettings.setBlockNetworkImage(false);
+                  webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+                  // Harici resim kaynakları için üçüncü taraf çerezlerine izin ver
+                  CookieManager cookieManager = CookieManager.getInstance();
+                  cookieManager.setAcceptCookie(true);
+                  cookieManager.setAcceptThirdPartyCookies(mWebView, true);
+
                   webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
                   webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
                   webSettings.setEnableSmoothTransition(true);
@@ -107,7 +118,6 @@ jobs:
                   mWebView.setWebViewClient(new WebViewClient() {
                       @Override
                       public void onPageFinished(WebView view, String url) {
-                          // Yüklenme ekranının tam 4 saniye boyunca görünür kalmasını sağlar
                           new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                               @Override
                               public void run() {
@@ -117,7 +127,6 @@ jobs:
                       }
                   });
 
-                  // AI Studio Canlı Oyun Bağlantısı
                   mWebView.loadUrl("https://football-manager-menajerlik-oyunu.ai.studio");
                   setContentView(mWebView);
               }
@@ -202,5 +211,5 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager27-Updated-Build
+          name: ClubManager27-Live-FixedImages
           path: final_output/*
