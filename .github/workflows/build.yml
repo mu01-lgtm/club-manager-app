@@ -29,7 +29,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # 1. İkonu klasörlere kopyala
+          # Sabit ve tutarlı Release Key üretimi
+          keytool -genkeypair -alias uploadKey -keyalg RSA -keysize 2048 -validity 10000 \
+            -keystore app/upload.keystore \
+            -storepass "ClubManagerPass123" \
+            -keypass "ClubManagerPass123" \
+            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
+
+          # İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -38,7 +45,7 @@ jobs:
             cp icon.png app/src/main/res/mipmap-mdpi/ic_launcher.png
           fi
 
-          # 2. Android Manifest
+          # Android Manifest
           cat << 'EOF' > app/src/main/AndroidManifest.xml
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -67,7 +74,7 @@ jobs:
           </manifest>
           EOF
 
-          # 3. MainActivity
+          # MainActivity
           cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/MainActivity.java
           package com.football.clubmanager2027;
 
@@ -140,7 +147,7 @@ jobs:
           }
           EOF
 
-          # 4. Root build.gradle
+          # Root Gradle
           cat << 'EOF' > build.gradle
           buildscript {
               repositories {
@@ -163,7 +170,7 @@ jobs:
           include ':app'
           EOF
 
-          # 5. App build.gradle (Google Play'in Beklediği Orijinal Sertifika Yapılandırması)
+          # App build.gradle
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -181,13 +188,22 @@ jobs:
                   versionName "1.0.0"
               }
 
+              signingConfigs {
+                  release {
+                      storeFile file('upload.keystore')
+                      storePassword 'ClubManagerPass123'
+                      keyAlias 'uploadKey'
+                      keyPassword 'ClubManagerPass123'
+                  }
+              }
+
               buildTypes {
                   release {
                       minifyEnabled false
-                      signingConfig signingConfigs.debug
+                      signingConfig signingConfigs.release
                   }
                   debug {
-                      signingConfig signingConfigs.debug
+                      signingConfig signingConfigs.release
                   }
               }
               compileOptions {
@@ -197,17 +213,16 @@ jobs:
           }
           EOF
 
-      - name: Build Play Store AAB and Direct Install APK
+      - name: Build Officially Signed Release APK and AAB
         run: |
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleDebug
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease assembleRelease
           mkdir -p final_output
-          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager2027-Installable.apk \;
+          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager2027-DirectInstall.apk \;
           find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager2027-PlayStore.aab \;
 
-      - name: Upload APK and AAB Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ClubManager2027-APK-and-AAB
+          name: ClubManager2027-Release-Build
           path: final_output/*
