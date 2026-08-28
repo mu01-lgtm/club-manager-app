@@ -21,7 +21,7 @@ jobs:
 
       - name: Create Native Android App
         run: |
-          mkdir -p app/src/main/java/com/football/clubmanager2027/game
+          mkdir -p app/src/main/java/com/football/clubmanager/game
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-xxxhdpi
           mkdir -p app/src/main/res/mipmap-xxhdpi
@@ -29,14 +29,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Sabit Release Keystore Üretimi
+          # Keystore Üretimi
           keytool -genkeypair -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
             -keystore app/upload_keystore.jks \
             -storepass "ClubManagerPass123" \
             -keypass "ClubManagerPass123" \
             -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
 
-          # İkonu klasörlere kopyala
+          # İkonu kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -74,8 +74,8 @@ jobs:
           EOF
 
           # MainActivity
-          cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/game/MainActivity.java
-          package com.football.clubmanager2027.game;
+          cat << 'EOF' > app/src/main/java/com/football/clubmanager/game/MainActivity.java
+          package com.football.clubmanager.game;
 
           import android.app.Activity;
           import android.graphics.Color;
@@ -176,11 +176,11 @@ jobs:
           }
 
           android {
-              namespace 'com.football.clubmanager2027.game'
+              namespace 'com.football.clubmanager.game'
               compileSdk 35
 
               defaultConfig {
-                  applicationId "com.football.clubmanager2027.game"
+                  applicationId "com.football.clubmanager.game"
                   minSdk 21
                   targetSdk 35
                   versionCode 1
