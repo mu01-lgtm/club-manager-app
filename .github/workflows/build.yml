@@ -29,12 +29,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Sabit Keystore Dosyası
-          cat << 'EOF' | base64 -d > app/upload_keystore.jks
-          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
-          EOF
+          # Sabit Release Keystore Üretimi
+          keytool -genkeypair -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+            -keystore app/upload_keystore.jks \
+            -storepass "ClubManagerPass123" \
+            -keypass "ClubManagerPass123" \
+            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
 
-          # İkonu kopyala
+          # İkonu klasörlere kopyala
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
             cp icon.png app/src/main/res/mipmap-xxhdpi/ic_launcher.png
@@ -71,7 +73,7 @@ jobs:
           </manifest>
           EOF
 
-          # MainActivity (Güncel Link Entegre Edildi)
+          # MainActivity
           cat << 'EOF' > app/src/main/java/com/football/clubmanager2027/game/MainActivity.java
           package com.football.clubmanager2027.game;
 
@@ -181,8 +183,8 @@ jobs:
                   applicationId "com.football.clubmanager2027.game"
                   minSdk 21
                   targetSdk 35
-                  versionCode 11
-                  versionName "1.0.1"
+                  versionCode 1
+                  versionName "1.0.0"
               }
 
               signingConfigs {
