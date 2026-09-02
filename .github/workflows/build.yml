@@ -20,8 +20,6 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Create Native Android App
-        env:
-          KEYSTORE_DATA: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
         run: |
           mkdir -p app/src/main/java/com/football/clubmanager
           mkdir -p app/src/main/res/values
@@ -31,20 +29,16 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          python3 -c "
-          import os, base64, re
-          raw = os.environ.get('KEYSTORE_DATA', '')
-          clean = re.sub(r'[^A-Za-z0-9+/=]', '', raw)
-          with open('app/temp_raw.jks', 'wb') as f:
-              f.write(base64.b64decode(clean))
-          "
-
-          # PKCS12 Uyumluluk Donusumu (Java 17 bütünlük hatasını onarır)
-          keytool -importkeystore \
-            -srckeystore app/temp_raw.jks -srcstoretype PKCS12 -srcstorepass ClubManager2027Secure \
-            -destkeystore app/upload_keystore.jks -deststoretype PKCS12 -deststorepass ClubManager2027Secure \
-            -srcalias uploadkey2027 -destalias uploadkey2027 -destkeypass ClubManager2027Secure \
-            -noprompt || cp app/temp_raw.jks app/upload_keystore.jks
+          # Guvenli Keystore Uretimi (Google Play sifirlama istegiyle tam uyumlu)
+          keytool -genkeypair -v \
+            -keystore app/upload_keystore.jks \
+            -alias uploadkey2027 \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass ClubManager2027Secure \
+            -keypass ClubManager2027Secure \
+            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
 
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
@@ -88,8 +82,6 @@ jobs:
           import android.graphics.Color;
           import android.net.http.SslError;
           import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
           import android.view.View;
           import android.webkit.CookieManager;
           import android.webkit.SslErrorHandler;
@@ -104,24 +96,25 @@ jobs:
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  
+                  hideSystemUI();
+
                   mWebView = new WebView(this);
                   mWebView.setBackgroundColor(Color.BLACK);
-                  
+                  mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
                   WebSettings webSettings = mWebView.getSettings();
                   webSettings.setJavaScriptEnabled(true);
                   webSettings.setDomStorageEnabled(true);
                   webSettings.setDatabaseEnabled(true);
                   webSettings.setAllowFileAccess(true);
                   webSettings.setAllowContentAccess(true);
-                  webSettings.setAllowFileAccessFromFileURLs(true);
-                  webSettings.setAllowUniversalAccessFromFileURLs(true);
                   webSettings.setUseWideViewPort(true);
                   webSettings.setLoadWithOverviewMode(true);
                   webSettings.setLoadsImagesAutomatically(true);
-                  webSettings.setBlockNetworkImage(false);
-                  webSettings.setBlockNetworkLoads(false);
                   webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+
+                  // Hizli acilis optimizasyonu (Onbellekten aninda yukler, gereksiz 3 sn gecikmeyi kaldirir)
+                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
                   String customUA = webSettings.getUserAgentString() + " Chrome/120.0.0.0 Mobile Safari/537.36";
                   webSettings.setUserAgentString(customUA);
@@ -130,9 +123,7 @@ jobs:
                   cookieManager.setAcceptCookie(true);
                   cookieManager.setAcceptThirdPartyCookies(mWebView, true);
 
-                  webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
                   mWebView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
-
                   mWebView.setWebChromeClient(new WebChromeClient());
                   mWebView.setWebViewClient(new WebViewClient() {
                       @Override
@@ -148,17 +139,32 @@ jobs:
 
                       @Override
                       public void onPageFinished(WebView view, String url) {
-                          new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                              @Override
-                              public void run() {
-                                  mWebView.evaluateJavascript("window.dispatchEvent(new Event('app-ready'));", null);
-                              }
-                          }, 3000);
+                          hideSystemUI();
+                          mWebView.evaluateJavascript("window.dispatchEvent(new Event('app-ready'));", null);
                       }
                   });
 
                   mWebView.loadUrl("https://football-manager-menajerlik-oyunu.ai.studio");
                   setContentView(mWebView);
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) {
+                      hideSystemUI();
+                  }
+              }
+
+              private void hideSystemUI() {
+                  View decorView = getWindow().getDecorView();
+                  decorView.setSystemUiVisibility(
+                          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                          | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                          | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                          | View.SYSTEM_UI_FLAG_FULLSCREEN);
               }
 
               @Override
@@ -207,8 +213,8 @@ jobs:
                   applicationId "com.football.clubmanager"
                   minSdk 21
                   targetSdk 36
-                  versionCode 9
-                  versionName "1.0.8"
+                  versionCode 10
+                  versionName "1.0.9"
               }
 
               signingConfigs {
