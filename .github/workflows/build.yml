@@ -31,14 +31,20 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Bosluklari ve satirlari otomatik temizleyip cozen Python cozumu
           python3 -c "
           import os, base64, re
           raw = os.environ.get('KEYSTORE_DATA', '')
           clean = re.sub(r'[^A-Za-z0-9+/=]', '', raw)
-          with open('app/upload_keystore.jks', 'wb') as f:
+          with open('app/temp_raw.jks', 'wb') as f:
               f.write(base64.b64decode(clean))
           "
+
+          # PKCS12 Uyumluluk Donusumu (Java 17 bütünlük hatasını onarır)
+          keytool -importkeystore \
+            -srckeystore app/temp_raw.jks -srcstoretype PKCS12 -srcstorepass ClubManager2027Secure \
+            -destkeystore app/upload_keystore.jks -deststoretype PKCS12 -deststorepass ClubManager2027Secure \
+            -srcalias uploadkey2027 -destalias uploadkey2027 -destkeypass ClubManager2027Secure \
+            -noprompt || cp app/temp_raw.jks app/upload_keystore.jks
 
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
