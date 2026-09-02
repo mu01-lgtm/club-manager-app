@@ -159,103 +159,57 @@ jobs:
                   }
               }
 
-              // Sanal tuşları ve bildirim çubuğunu gizleyerek butonların kapanmasını önler
               private void hideSystemUI() {
                   View decorView = getWindow().getDecorView();
                   decorView.setSystemUiVisibility(
-                          View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                          | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                          | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                          | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                          | View.SYSTEM_UI_FLAG_FULLSCREEN);
-              }
+                          View.SYSTEM_UIGoogle Play'in verdiği hata: **Hedef API düzeyi (Target SDK)** gereksinimidir. Google Play, yeni sürümler için hedef API seviyesinin en az **36 (Android 16)** olmasını zorunlu tutmaktadır.
 
-              @Override
-              public void onBackPressed() {
-                  if (mWebView.canGoBack()) {
-                      mWebView.goBack();
-                  } else {
-                      super.onBackPressed();
-                  }
-              }
-          }
-          EOF
+Sorunu çözmek için adımlar:
 
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.2.2'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          EOF
+**1. Taslağı Silin**
+* Play Console ekranının sağ üst köşesinde yer alan mavi **"Taslak sürümü sil"** bağlantısına tıklayıp mevcut hatalı taslağı kaldırın.
 
-          cat << 'EOF' > settings.gradle
-          include ':app'
-          EOF
+---
 
-          cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application'
-          }
+**2. `build.yml` Dosyasını Güncelleyin**
+* GitHub deponuzdaki `.github/workflows/build.yml` dosyasını açın.
+* `compileSdk`, `targetSdk` değerlerini **36**'ya çekin ve `versionCode` değerini **7** yapın.
 
-          android {
-              namespace 'com.football.clubmanager'
-              compileSdk 35
+Dosyadaki `app/build.gradle` üreten bloğu şu şekilde düzenleyin:
 
-              defaultConfig {
-                  applicationId "com.football.clubmanager"
-                  minSdk 21
-                  targetSdk 35
-                  versionCode 6
-                  versionName "1.0.5"
-              }
+```groovy
+android {
+    namespace 'com.football.clubmanager'
+    compileSdk 36
 
-              signingConfigs {
-                  release {
-                      storeFile file('upload_keystore.jks')
-                      storePassword 'ClubManager2027Secure'
-                      keyAlias 'uploadkey2027'
-                      keyPassword 'ClubManager2027Secure'
-                  }
-              }
+    defaultConfig {
+        applicationId "com.football.clubmanager"
+        minSdk 21
+        targetSdk 36
+        versionCode 7
+        versionName "1.0.6"
+    }
 
-              buildTypes {
-                  release {
-                      minifyEnabled false
-                      signingConfig signingConfigs.release
-                  }
-                  debug {
-                      signingConfig signingConfigs.release
-                  }
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          EOF
+    signingConfigs {
+        release {
+            storeFile file('upload_keystore.jks')
+            storePassword 'ClubManager2027Secure'
+            keyAlias 'uploadkey2027'
+            keyPassword 'ClubManager2027Secure'
+        }
+    }
 
-      - name: Build Signed AAB and APK
-        run: |
-          gradle wrapper --gradle-version 8.5
-          ./gradlew bundleRelease assembleRelease
-          mkdir -p final_output
-          find app/build/outputs/ -name "*.apk" -exec cp {} final_output/ClubManager2027-DirectInstall.apk \;
-          find app/build/outputs/ -name "*.aab" -exec cp {} final_output/ClubManager2027-PlayStore.aab \;
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ClubManager2027-Release-Files
-          path: final_output/*
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
