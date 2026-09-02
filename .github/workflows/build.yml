@@ -20,6 +20,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Create Native Android App
+        env:
+          KEYSTORE_DATA: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
         run: |
           mkdir -p app/src/main/java/com/football/clubmanager
           mkdir -p app/src/main/res/values
@@ -29,8 +31,14 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Keystore'u guvenli Secrets uzerinden coz
-          echo "${{ secrets.PLAY_KEYSTORE_BASE64 }}" | base64 -d > app/upload_keystore.jks
+          # Bosluklari ve satirlari otomatik temizleyip cozen Python cozumu
+          python3 -c "
+          import os, base64, re
+          raw = os.environ.get('KEYSTORE_DATA', '')
+          clean = re.sub(r'[^A-Za-z0-9+/=]', '', raw)
+          with open('app/upload_keystore.jks', 'wb') as f:
+              f.write(base64.b64decode(clean))
+          "
 
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
