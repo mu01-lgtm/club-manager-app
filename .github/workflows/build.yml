@@ -161,31 +161,26 @@ jobs:
 
               private void hideSystemUI() {
                   View decorView = getWindow().getDecorView();
-                  decorView.setSystemUiVisibility(
-                          View.SYSTEM_UIGoogle Play'in verdiği hata: **Hedef API düzeyi (Target SDK)** gereksinimidir. Google Play, yeni sürümler için hedef API seviyesinin en az **36 (Android 16)** olmasını zorunlu tutmaktadır.
+                  decorGoogle Play Console'daki **"Hedef API düzeyi en az 35 olmalıdır"** hatasını ve sürüm çakışmasını gidermek için `build.yml` dosyanızı Target SDK 35 ve yeni bir sürüm kodu (`versionCode 7`) ile temiz bir şekilde yapılandırmanız gerekir.
 
-Sorunu çözmek için adımlar:
+Aşağıdaki adımları sırayla uygulayarak sorunu çözebilirsiniz:
 
-**1. Taslağı Silin**
-* Play Console ekranının sağ üst köşesinde yer alan mavi **"Taslak sürümü sil"** bağlantısına tıklayıp mevcut hatalı taslağı kaldırın.
-
----
+**1. Hatalı Taslağı Silin**
+* Google Play Console ekranında sağ üst köşedeki **"Taslak sürümü sil"** seçeneğine tıklayıp mevcut taslağı kaldırın.
 
 **2. `build.yml` Dosyasını Güncelleyin**
 * GitHub deponuzdaki `.github/workflows/build.yml` dosyasını açın.
-* `compileSdk`, `targetSdk` değerlerini **36**'ya çekin ve `versionCode` değerini **7** yapın.
-
-Dosyadaki `app/build.gradle` üreten bloğu şu şekilde düzenleyin:
+* `app/build.gradle` dosyasını oluşturan bölümdeki `defaultConfig` bloğunu şu şekilde düzenleyin:
 
 ```groovy
 android {
     namespace 'com.football.clubmanager'
-    compileSdk 36
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.football.clubmanager"
         minSdk 21
-        targetSdk 36
+        targetSdk 35
         versionCode 7
         versionName "1.0.6"
     }
