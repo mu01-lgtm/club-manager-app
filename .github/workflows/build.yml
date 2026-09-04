@@ -20,6 +20,8 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Create Native Android App
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
         run: |
           mkdir -p app/src/main/java/com/football/clubmanager
           mkdir -p app/src/main/res/values
@@ -29,16 +31,13 @@ jobs:
           mkdir -p app/src/main/res/mipmap-hdpi
           mkdir -p app/src/main/res/mipmap-mdpi
 
-          # Guvenli Keystore Uretimi (Google Play sifirlama istegiyle tam uyumlu)
-          keytool -genkeypair -v \
-            -keystore app/upload_keystore.jks \
-            -alias uploadkey2027 \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass ClubManager2027Secure \
-            -keypass ClubManager2027Secure \
-            -dname "CN=ClubManager, OU=Games, O=ClubManager, L=Istanbul, ST=Istanbul, C=TR"
+          # Onaylanan kalici anahtari secrets uzerinden cozme
+          python3 -c "
+          import os, base64
+          data = os.environ.get('KEYSTORE_BASE64', '').strip()
+          with open('app/upload_keystore.jks', 'wb') as f:
+              f.write(base64.b64decode(data))
+          "
 
           if [ -f "icon.png" ]; then
             cp icon.png app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
@@ -112,8 +111,6 @@ jobs:
                   webSettings.setLoadWithOverviewMode(true);
                   webSettings.setLoadsImagesAutomatically(true);
                   webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-
-                  // Hizli acilis optimizasyonu (Onbellekten aninda yukler, gereksiz 3 sn gecikmeyi kaldirir)
                   webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
                   String customUA = webSettings.getUserAgentString() + " Chrome/120.0.0.0 Mobile Safari/537.36";
@@ -213,8 +210,8 @@ jobs:
                   applicationId "com.football.clubmanager"
                   minSdk 21
                   targetSdk 36
-                  versionCode 10
-                  versionName "1.0.9"
+                  versionCode 11
+                  versionName "1.1.0"
               }
 
               signingConfigs {
